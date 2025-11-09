@@ -672,15 +672,15 @@ const HomePage: React.FC<HomePageProps> = ({
                 return (
                     <section>
                         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">{config.title}</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
                             {topLevelCategories.map(cat => {
                                 const style = getCategoryStyle(cat.name);
                                 return (
                                 <button key={cat.id} onClick={() => onSelectCategory({ id: cat.id, name: cat.name })} className="block p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md border dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg transition-all text-center group">
-                                    <div className={`w-24 h-24 rounded-full mx-auto mb-4 border-4 border-white dark:border-gray-800 shadow-md transform group-hover:scale-110 transition-transform duration-300 flex items-center justify-center ${style.bg} ${style.text}`}>
-                                        <DynamicIcon name={cat.icon || cat.name} className="w-12 h-12" />
+                                    <div className={`w-20 h-20 rounded-full mx-auto mb-3 border-4 border-white dark:border-gray-800 shadow-md transform group-hover:scale-110 transition-transform duration-300 flex items-center justify-center ${style.bg} ${style.text}`}>
+                                        <DynamicIcon name={cat.icon || cat.name} className="w-10 h-10" />
                                     </div>
-                                    <p className="font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{cat.name}</p>
+                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{cat.name}</p>
                                 </button>
                             )})}
                         </div>
@@ -694,15 +694,15 @@ const HomePage: React.FC<HomePageProps> = ({
                 return (
                     <section>
                         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">{config.title}</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
                             {topLevelSections.map(sec => {
                                 const style = getCategoryStyle(sec.name);
                                 return (
                                 <button key={sec.id} onClick={() => onSelectCurrentAffairsSection({ id: sec.id, name: sec.name })} className="block p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md border dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg transition-all text-center group">
-                                    <div className={`w-24 h-24 rounded-full mx-auto mb-4 border-4 border-white dark:border-gray-800 shadow-md transform group-hover:scale-110 transition-transform duration-300 flex items-center justify-center ${style.bg} ${style.text}`}>
-                                        <DynamicIcon name={sec.icon || sec.name} className="w-12 h-12" />
+                                    <div className={`w-20 h-20 rounded-full mx-auto mb-3 border-4 border-white dark:border-gray-800 shadow-md transform group-hover:scale-110 transition-transform duration-300 flex items-center justify-center ${style.bg} ${style.text}`}>
+                                        <DynamicIcon name={sec.icon || sec.name} className="w-10 h-10" />
                                     </div>
-                                    <p className="font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{sec.name}</p>
+                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{sec.name}</p>
                                 </button>
                             )})}
                         </div>
