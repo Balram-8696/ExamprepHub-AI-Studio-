@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://examprep-hub-ai-studio-pkdg.vercel.app/sitemap.xml
