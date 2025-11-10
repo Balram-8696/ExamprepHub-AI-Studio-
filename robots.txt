@@ -1,0 +1,7 @@
+# Root robots.txt - allows all crawlers by default.
+# Update the Sitemap URL to match your published site (if any).
+User-agent: *
+Disallow:
+
+# Example: set to your real site sitemap when ready:
+# Sitemap: https://example.com/sitemap.xml
