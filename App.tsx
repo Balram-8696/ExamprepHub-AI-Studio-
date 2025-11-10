@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { collection, onSnapshot, query, orderBy, doc, getDoc, setDoc, serverTimestamp, writeBatch, where, limit, Timestamp, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, getDoc, setDoc, serverTimestamp, writeBatch, where, limit, Timestamp, addDoc, getDocs } from 'firebase/firestore';
 import { auth, db } from './services/firebase';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -16,13 +16,14 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import ProfilePage from './components/pages/ProfilePage';
 import SettingsPage from './components/pages/SettingsPage';
 import Breadcrumbs from './components/layout/Breadcrumbs';
-import { Test, UserResult, Category, UserProfile, FooterLink, CurrentAffairsSection, Notification } from './types';
+import { Test, UserResult, Category, UserProfile, FooterLink, CurrentAffairsSection, Notification, UpdateArticle, CustomPage } from './types';
 import { showMessage } from './utils/helpers';
 import InstructionsPage from './components/pages/InstructionsPage';
 import NotificationDetailModal from './components/modals/NotificationDetailModal';
 import ChatModal from './components/modals/ChatModal';
 import UpdatesPage from './components/pages/UpdatesPage';
 import UpdateArticleView from './components/pages/UpdateArticleView';
+import AuthModal from './components/modals/AuthModal';
 
 export type ViewType = 'home' | 'history' | 'about' | 'contact' | 'privacy' | 'admin' | 'profile' | 'settings' | 'updates' | 'updateArticle';
 export const AuthContext = React.createContext<{ user: User | null, userProfile: UserProfile | null }>({ user: null, userProfile: null });
@@ -62,6 +63,8 @@ const App: React.FC = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [notificationToShow, setNotificationToShow] = useState<Notification | null>(null);
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+    const [authModalState, setAuthModalState] = useState({ isOpen: false, initialView: 'signin' as 'signin' | 'signup' });
+
 
     useEffect(() => {
         const stylesDocRef = doc(db, 'uiSettings', 'dynamicStyles');
@@ -322,6 +325,157 @@ const App: React.FC = () => {
         setBreadcrumbs(newBreadcrumbs);
     }, [view, isAdminView, activeTestData, activePageSlug, activeArticleSlug, selectedCategory, categories, customPageTitle, testForInstructions, selectedCurrentAffairsSection, currentAffairsSections]);
     
+    // SEO Effect
+    useEffect(() => {
+        const createSnippet = (htmlContent: string, length = 155) => {
+            if (!htmlContent) return '';
+            const text = htmlContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            return text.length > length ? text.substring(0, length) + '...' : text;
+        };
+
+        const setSeoData = async () => {
+            // Cleanup previous schema
+            const existingSchema = document.getElementById('json-ld-schema');
+            if (existingSchema) {
+                existingSchema.remove();
+            }
+
+            let title = 'ExamPrep Hub | High-Quality Mock Exams for All Tests';
+            let description = 'An interactive and comprehensive platform for taking mock exams. Features user authentication, categorized tests, real-time test-taking with a timer, result analysis with charts, and detailed solution reviews.';
+            let schema: any = {
+                '@context': 'https://schema.org',
+                '@type': 'WebSite',
+                name: 'ExamPrep Hub',
+                url: window.location.origin,
+            };
+
+            if (testForInstructions) {
+                title = `Instructions for ${testForInstructions.title} | ExamPrep Hub`;
+                description = `Prepare for the ${testForInstructions.title} mock exam. Review instructions, duration: ${testForInstructions.durationMinutes} mins, and marking scheme before you begin.`;
+                schema = {
+                    '@context': 'https://schema.org',
+                    '@type': 'Quiz',
+                    name: testForInstructions.title,
+                    description: description,
+                    educationalLevel: "Professional",
+                };
+            } else if (activeArticleSlug) {
+                try {
+                    const q = query(collection(db, 'updateArticles'), where("slug", "==", activeArticleSlug), limit(1));
+                    const snapshot = await getDocs(q);
+                    if (!snapshot.empty) {
+                        const article = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as UpdateArticle;
+                        title = `${article.metaTitle || article.title} | ExamPrep Hub`;
+                        description = article.metaDescription || createSnippet(article.content);
+                        schema = {
+                            '@context': 'https://schema.org',
+                            '@type': 'Article',
+                            mainEntityOfPage: {
+                                '@type': 'WebPage',
+                                '@id': `${window.location.origin}/#update/${article.slug}`,
+                            },
+                            headline: article.title,
+                            description: description,
+                            image: article.featuredImageUrl || '',
+                            author: {
+                                '@type': 'Organization',
+                                name: 'ExamPrep Hub',
+                            },
+                            publisher: {
+                                '@type': 'Organization',
+                                name: 'ExamPrep Hub',
+                                logo: {
+                                    '@type': 'ImageObject',
+                                    url: `${window.location.origin}/vite.svg`,
+                                },
+                            },
+                            datePublished: article.publishAt.toDate().toISOString(),
+                            dateModified: article.updatedAt ? article.updatedAt.toDate().toISOString() : article.publishAt.toDate().toISOString(),
+                        };
+                    }
+                } catch (e) {
+                    console.error("Error fetching article for SEO", e);
+                }
+            } else if (activePageSlug) {
+                 try {
+                    const q = query(collection(db, 'customPages'), where("slug", "==", activePageSlug), limit(1));
+                    const snapshot = await getDocs(q);
+                    if (!snapshot.empty) {
+                        const page = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as CustomPage;
+                        title = `${page.title} | ExamPrep Hub`;
+                        description = createSnippet(page.content);
+                        schema = {
+                            '@context': 'https://schema.org',
+                            '@type': 'WebPage',
+                            name: page.title,
+                            description: description,
+                            url: `${window.location.origin}/#${page.slug}`,
+                        };
+                    }
+                } catch (e) {
+                    console.error("Error fetching custom page for SEO", e);
+                }
+            } else {
+                switch(view) {
+                    case 'home':
+                        // default is already set for home
+                        break;
+                    case 'updates':
+                        title = 'Latest Updates & Articles | ExamPrep Hub';
+                        description = 'Stay informed with the latest articles, announcements, and content updates from ExamPrep Hub.';
+                        break;
+                    case 'history':
+                        title = 'My Test History & Results | ExamPrep Hub';
+                        description = 'Review your past test performance, analyze your results, and track your progress over time on ExamPrep Hub.';
+                        break;
+                    case 'about':
+                        title = 'About ExamPrep Hub';
+                        description = 'Learn about our mission to empower students and professionals by providing an interactive and comprehensive platform for mock exams.';
+                        break;
+                    case 'contact':
+                        title = 'Contact Us | ExamPrep Hub';
+                        description = 'Have questions or feedback? Get in touch with the ExamPrep Hub team. We would love to hear from you.';
+                        break;
+                    case 'privacy':
+                        title = 'Privacy Policy | ExamPrep Hub';
+                        description = 'Read the ExamPrep Hub privacy policy to understand how we collect, use, and protect your personal information.';
+                        break;
+                    case 'profile':
+                        title = 'My Profile | ExamPrep Hub';
+                        description = 'Manage your profile details and view your performance statistics on ExamPrep Hub.';
+                        break;
+                    case 'settings':
+                        title = 'Settings | ExamPrep Hub';
+                        description = 'Customize your account settings, including appearance, notifications, and security on ExamPrep Hub.';
+                        break;
+                }
+            }
+
+            // Apply changes
+            document.title = title;
+            const metaDesc = document.getElementById('meta-description');
+            if (metaDesc) {
+                metaDesc.setAttribute('content', description);
+            }
+
+            const script = document.createElement('script');
+            script.id = 'json-ld-schema';
+            script.type = 'application/ld+json';
+            script.innerHTML = JSON.stringify(schema);
+            document.head.appendChild(script);
+        };
+
+        setSeoData();
+
+        // Cleanup function
+        return () => {
+            const existingSchema = document.getElementById('json-ld-schema');
+            if (existingSchema) {
+                existingSchema.remove();
+            }
+        };
+    }, [view, activeArticleSlug, activePageSlug, testForInstructions]);
+
     const handleMarkAsRead = async (ids: string[]) => {
         if (!user || ids.length === 0) return;
         const batch = writeBatch(db);
@@ -343,6 +497,24 @@ const App: React.FC = () => {
     };
 
     const staticViews: ViewType[] = ['home', 'history', 'about', 'contact', 'privacy', 'admin', 'profile', 'settings', 'updates'];
+
+    const handleSearch = (query: string) => {
+        setSearchQuery(query);
+        // When a search is performed, reset category filters to search globally
+        if (query.trim() !== '') {
+            setSelectedCategory({ id: '', name: 'All Tests' });
+            setSelectedCurrentAffairsSection({ id: '', name: 'All' });
+            // Ensure we are on the home page to display results
+            if (view !== 'home' || testForInstructions || activeTestData || activePageSlug || activeArticleSlug) {
+                setActiveTestData(null);
+                setTestForInstructions(null);
+                setActivePageSlug(null);
+                setActiveArticleSlug(null);
+                setIsAdminView(false);
+                setView('home');
+            }
+        }
+    };
 
     const handleNavigation = (newView: string, isBackAction = false) => {
         if (!isBackAction && view !== newView) {
@@ -379,9 +551,9 @@ const App: React.FC = () => {
         } else if (staticViews.includes(newView as ViewType)) {
             setView(newView as ViewType);
             if (newView === 'home') {
+                setSearchQuery('');
                 setSelectedCategory({ id: '', name: 'All Tests' });
                 setSelectedCurrentAffairsSection({ id: '', name: 'All' });
-                setSearchQuery('');
             }
             if (newView === 'admin') {
                 setIsAdminView(true);
@@ -457,7 +629,6 @@ const App: React.FC = () => {
             return <UpdateArticleView 
                 slug={activeArticleSlug} 
                 onNavigate={handleNavigation} 
-                onBack={handleBack} 
                 onPageLoad={setCustomPageTitle}
                 onInitiateTestView={handleInitiateTestView}
                 onShowInstructions={handleShowInstructions}
@@ -477,6 +648,7 @@ const App: React.FC = () => {
                     selectedCurrentAffairsSection={selectedCurrentAffairsSection}
                     searchQuery={searchQuery}
                     onNavigate={handleNavigation}
+                    onOpenAuthModal={(initialView = 'signup') => setAuthModalState({ isOpen: true, initialView })}
                 />;
             case 'updates':
                 return <UpdatesPage onNavigate={handleNavigation} />;
@@ -505,6 +677,7 @@ const App: React.FC = () => {
                     selectedCurrentAffairsSection={selectedCurrentAffairsSection}
                     searchQuery={searchQuery}
                     onNavigate={handleNavigation}
+                    onOpenAuthModal={(initialView = 'signup') => setAuthModalState({ isOpen: true, initialView })}
                 />;
         }
     };
@@ -523,11 +696,12 @@ const App: React.FC = () => {
                         isAdminView={isAdminView}
                         onSwitchToUserView={handleSwitchToUserView}
                         searchQuery={searchQuery}
-                        onSearch={setSearchQuery}
+                        onSearch={handleSearch}
                         notifications={notifications}
                         onOpenChat={() => setIsChatModalOpen(true)}
                         onMarkAsRead={handleMarkAsRead}
                         onNotificationClick={handleNotificationClick}
+                        onOpenAuthModal={() => setAuthModalState({ isOpen: true, initialView: 'signin' })}
                     />
                     {!isAdminView && <Breadcrumbs items={breadcrumbs} onNavigate={handleNavigation} />}
                     <MobileMenu 
@@ -550,6 +724,11 @@ const App: React.FC = () => {
                     <ChatModal
                         isOpen={isChatModalOpen}
                         onClose={() => setIsChatModalOpen(false)}
+                    />
+                    <AuthModal
+                        isOpen={authModalState.isOpen}
+                        initialView={authModalState.initialView}
+                        onClose={() => setAuthModalState({ isOpen: false, initialView: 'signin' })}
                     />
                 </div>
             )}

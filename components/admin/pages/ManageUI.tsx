@@ -3,39 +3,13 @@ import { doc, onSnapshot, setDoc, collection, query, where, orderBy, updateDoc, 
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../../../services/firebase';
 import { showMessage } from '../../../utils/helpers';
-import { CustomPage, FooterLink, HomepageSettings, Category, HomeComponent, BannerComponentConfig, FeaturedCategoryComponentConfig, LatestTestsComponentConfig, CategoriesGridComponentConfig, RichTextComponentConfig, RecentTestsComponentConfig, AnnouncementsComponentConfig, TestimonialsComponentConfig, Testimonial, StatsCounterComponentConfig, Stat, FAQComponentConfig, FAQ, CTAComponentConfig, SyllabusComponentConfig, NotesComponentConfig, InformationComponentConfig, NewAdditionsComponentConfig, RecommendedTestsComponentConfig, CountdownTimerComponentConfig, VideoEmbedComponentConfig, LeaderboardComponentConfig, ImageGalleryComponentConfig, GalleryImage, FeaturedTutorsComponentConfig, Tutor, CurrentAffairsGridComponentConfig, TestGridComponentConfig, CurrentAffairsSection } from '../../../types';
+import { CustomPage, FooterLink, HomepageSettings, Category, HomeComponent, BannerComponentConfig, FeaturedCategoryComponentConfig, LatestTestsComponentConfig, CategoriesGridComponentConfig, RichTextComponentConfig, RecentTestsComponentConfig, AnnouncementsComponentConfig, TestimonialsComponentConfig, Testimonial, StatsCounterComponentConfig, Stat, FAQComponentConfig, FAQ, CTAComponentConfig, SyllabusComponentConfig, NotesComponentConfig, InformationComponentConfig, NewAdditionsComponentConfig, RecommendedTestsComponentConfig, CountdownTimerComponentConfig, VideoEmbedComponentConfig, LeaderboardComponentConfig, ImageGalleryComponentConfig, GalleryImage, FeaturedTutorsComponentConfig, Tutor, CurrentAffairsGridComponentConfig, TestGridComponentConfig, CurrentAffairsSection, LatestUpdatesComponentConfig } from '../../../types';
 import { GoogleGenAI, Type } from "@google/genai";
 import { Palette, Wand2, Loader2, Eye, Save, Trash2, Link as LinkIcon, PlusCircle, Pencil, LayoutPanelTop, ArrowUp, ArrowDown, GripVertical, Image as ImageIcon, FileText, List, Grid, Type as TypeIcon, History, Bell, Megaphone, MessageSquareQuote, TrendingUp, HelpCircle, Info, ClipboardList, StickyNote, Sparkles, Star, Timer, Youtube, Trophy, Users, Newspaper } from 'lucide-react';
 import Modal from '../../modals/Modal';
-// FIX: Import AIThemeEditor and FooterLinksManager (from UICustomization)
 import AIThemeEditor from './AIUIEditor';
 import FooterLinksManager from './UICustomization';
 import LayoutPreviewModal from '../../modals/LayoutPreviewModal';
-
-// Simplified Preview Component for AI Theme Editor
-const PreviewComponent = () => (
-    <div className="bg-slate-100 p-4 font-sans">
-        <header className="bg-white shadow-md mb-4 p-4 rounded-lg">
-            <h1 className="text-2xl font-extrabold text-indigo-700">Exam<span className="text-gray-900">Hub</span></h1>
-        </header>
-        <div className="bg-white p-6 rounded-xl shadow-lg text-center border-t-4 border-indigo-500">
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Master Your Exams</h1>
-            <p className="text-lg text-gray-600">Prepare effectively with high-quality online mock tests.</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col">
-                <h3 className="text-xl font-semibold mb-2">Sample Test</h3>
-                <p className="text-gray-500 text-sm mb-4">10 questions | 15 mins</p>
-                <button className="w-full mt-auto py-2.5 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md">Attempt Now</button>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col">
-                <h3 className="text-xl font-semibold mb-2">Another Test</h3>
-                <p className="text-gray-500 text-sm mb-4">20 questions | 30 mins</p>
-                <button className="w-full mt-auto py-2.5 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md">Attempt Now</button>
-            </div>
-        </div>
-    </div>
-);
 
 const ManageUI: React.FC = () => {
     return (
@@ -67,6 +41,7 @@ const componentTypes: { type: HomeComponent['type']; label: string; icon: React.
     { type: 'categories_grid', label: 'Categories Grid', icon: Grid },
     { type: 'current_affairs_grid', label: 'Current Affairs Grid', icon: Newspaper },
     { type: 'latest_tests', label: 'Latest Tests', icon: List },
+    { type: 'latest_updates', label: 'Latest Updates', icon: Newspaper },
     { type: 'new_additions', label: 'New Additions (with badge)', icon: Sparkles },
     { type: 'recent_tests', label: 'Recent User Tests', icon: History },
     { type: 'recommended_tests', label: 'Recommended Tests', icon: Star },
@@ -83,6 +58,8 @@ const componentTypes: { type: HomeComponent['type']; label: string; icon: React.
     { type: 'notes', label: 'Notes Block', icon: StickyNote },
     { type: 'information', label: 'Information Block', icon: Info },
     { type: 'rich_text', label: 'Rich Text Block', icon: TypeIcon },
+    // FIX: Added the missing 'icon' property to satisfy the TypeScript type.
+    { type: 'test_grid', label: 'Test Grid', icon: Grid },
 ];
 
 // Homepage Layout Manager
@@ -153,26 +130,27 @@ You are a UI/UX expert designing a homepage layout for an exam prep website. Bas
 Available component types and their configurations are:
 1. 'banner': { "title": "string", "subtitle": "string", "imageUrl": null }
 2. 'latest_tests': { "title": "string", "limit": number (between 2 and 8) }
-3. 'featured_category': { "title": "string (include the category name here)", "categoryId": null }
-4. 'categories_grid': { "title": "string" }
-5. 'current_affairs_grid': { "title": "string" }
-6. 'rich_text': { "content": "string (HTML content)" }
-7. 'recent_tests': { "title": "string", "limit": number (between 2 and 6) }
-8. 'announcements': { "title": "string" }
-9. 'testimonials': { "title": "string", "testimonials": [{ "text": "string", "author": "string", "role": "string" }] }
-10. 'stats_counter': { "title": "string", "stats": [{ "label": "string", "value": "string" }] }
-11. 'faq': { "title": "string", "faqs": [{ "question": "string", "answer": "string" }] }
-12. 'cta': { "headline": "string", "description": "string", "buttonText": "string", "buttonLink": "string" }
-13. 'new_additions': { "title": "string", "limit": number (between 2 and 8) }
-14. 'syllabus': { "title": "string", "content": "string (HTML content)" }
-15. 'notes': { "title": "string", "content": "string (HTML content)" }
-16. 'information': { "title": "string", "content": "string (HTML content)" }
-17. 'recommended_tests': { "title": "string", "limit": number (between 2 and 6) }
-18. 'countdown_timer': { "title": "string", "targetDate": "YYYY-MM-DDTHH:mm", "eventDescription": "string" }
-19. 'video_embed': { "title": "string", "youtubeVideoId": "string" }
-20. 'leaderboard': { "title": "string", "limit": number (between 3 and 10), "timeframe": "all-time" }
-21. 'image_gallery': { "title": "string", "images": [{ "src": "string", "alt": "string", "caption": "string" }] }
-22. 'featured_tutors': { "title": "string", "tutors": [{ "name": "string", "specialty": "string", "imageUrl": "string" }] }
+3. 'latest_updates': { "title": "string", "limit": number (between 2 and 5) }
+4. 'featured_category': { "title": "string (include the category name here)", "categoryId": null }
+5. 'categories_grid': { "title": "string" }
+6. 'current_affairs_grid': { "title": "string" }
+7. 'rich_text': { "content": "string (HTML content)" }
+8. 'recent_tests': { "title": "string", "limit": number (between 2 and 6) }
+9. 'announcements': { "title": "string" }
+10. 'testimonials': { "title": "string", "testimonials": [{ "text": "string", "author": "string", "role": "string" }] }
+11. 'stats_counter': { "title": "string", "stats": [{ "label": "string", "value": "string" }] }
+12. 'faq': { "title": "string", "faqs": [{ "question": "string", "answer": "string" }] }
+13. 'cta': { "headline": "string", "description": "string", "buttonText": "string", "buttonLink": "string" }
+14. 'new_additions': { "title": "string", "limit": number (between 2 and 8) }
+15. 'syllabus': { "title": "string", "content": "string (HTML content)" }
+16. 'notes': { "title": "string", "content": "string (HTML content)" }
+17. 'information': { "title": "string", "content": "string (HTML content)" }
+18. 'recommended_tests': { "title": "string", "limit": number (between 2 and 6) }
+19. 'countdown_timer': { "title": "string", "targetDate": "YYYY-MM-DDTHH:mm", "eventDescription": "string" }
+20. 'video_embed': { "title": "string", "youtubeVideoId": "string" }
+21. 'leaderboard': { "title": "string", "limit": number (between 3 and 10), "timeframe": "all-time" }
+22. 'image_gallery': { "title": "string", "images": [{ "src": "string", "alt": "string", "caption": "string" }] }
+23. 'featured_tutors': { "title": "string", "tutors": [{ "name": "string", "specialty": "string", "imageUrl": "string" }] }
 
 Generate a JSON array of these components in a logical order. For each component, provide a unique 'id' (e.g., 'banner-12345'), 'type', 'enabled: true', and a 'config' object. For the 'featured_category' component, always set 'categoryId' to null.
 User's request: "${aiLayoutPrompt}"
@@ -229,6 +207,7 @@ Return ONLY the JSON array.`;
             case 'banner': defaultConfig = { title: 'New Banner', subtitle: 'Banner subtitle', imageUrl: null }; break;
             case 'featured_category': defaultConfig = { title: 'Featured Category', categoryId: null }; break;
             case 'latest_tests': defaultConfig = { title: 'Latest Tests', limit: 4 }; break;
+            case 'latest_updates': defaultConfig = { title: 'Latest Updates', limit: 3 }; break;
             case 'categories_grid': defaultConfig = { title: 'Explore Categories' }; break;
             case 'current_affairs_grid': defaultConfig = { title: 'Current Affairs' }; break;
             case 'rich_text': defaultConfig = { content: '<h2>New Section</h2><p>Add your custom text or HTML content here.</p>' }; break;

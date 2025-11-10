@@ -16,6 +16,7 @@ import { Loader2 } from 'lucide-react';
 interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
+    initialView?: 'signin' | 'signup';
 }
 
 const formatAuthError = (message: string): string => {
@@ -41,8 +42,8 @@ const formatAuthError = (message: string): string => {
 };
 
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-    const [view, setView] = useState<'signin' | 'signup' | 'forgot'>('signin');
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialView = 'signin' }) => {
+    const [view, setView] = useState<'signin' | 'signup' | 'forgot'>(initialView);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -52,6 +53,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
     useEffect(() => {
         if (isOpen) {
+            setView(initialView);
             // Reset form fields and errors when modal opens or view changes
             setError('');
             setName('');
@@ -62,7 +64,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             // Reset to signin view when modal is fully closed
             setTimeout(() => setView('signin'), 300);
         }
-    }, [isOpen, view]);
+    }, [isOpen, initialView]);
 
     const handleEmailAuth = async (e: React.FormEvent) => {
         e.preventDefault();

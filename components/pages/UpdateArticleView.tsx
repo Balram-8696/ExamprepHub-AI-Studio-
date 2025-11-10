@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { collection, query, where, onSnapshot, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, limit, doc, getDoc, updateDoc, increment, Timestamp } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { UpdateArticle, Test, Category, UserResult, TestStateLocal } from '../../types';
 import { FileWarning, ArrowLeft, Loader2 } from 'lucide-react';
@@ -54,7 +54,7 @@ const EmbeddedTest: React.FC<EmbeddedTestProps> = ({ testId, onInitiateTestView,
         else if (action === 'result') onInitiateTestView({ test, action: 'result', resultData: userResult, language: 'english' });
     };
 
-    if (!test) return <div className="p-4 bg-gray-100 rounded-lg text-center"><Loader2 className="animate-spin inline-block" /></div>;
+    if (!test) return <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-center"><Loader2 className="animate-spin inline-block" /></div>;
 
     return <TestCard test={test} userResult={userResult} inProgressTest={inProgress} onAction={handleAction} />;
 };
@@ -84,13 +84,12 @@ const EmbeddedCategory: React.FC<{ categoryId: string; onNavigate: (path: string
 interface UpdateArticleViewProps {
     slug: string;
     onNavigate: (view: string) => void;
-    onBack: () => void;
     onPageLoad: (title: string) => void;
     onInitiateTestView: (details: { test: Test; action: 'resume' | 'result'; resultData?: UserResult, language: 'english' | 'hindi' }) => void;
     onShowInstructions: (test: Test) => void;
 }
 
-const UpdateArticleView: React.FC<UpdateArticleViewProps> = ({ slug, onBack, onPageLoad, ...embedProps }) => {
+const UpdateArticleView: React.FC<UpdateArticleViewProps> = ({ slug, onPageLoad, ...embedProps }) => {
     const [article, setArticle] = useState<UpdateArticle | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -104,18 +103,28 @@ const UpdateArticleView: React.FC<UpdateArticleViewProps> = ({ slug, onBack, onP
                 setError('Article not found.');
                 onPageLoad('Not Found');
                 setArticle(null);
+                 setLoading(false);
             } else {
                 const articleData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as UpdateArticle;
                 if (articleData.status === 'published') {
                     setArticle(articleData);
                     onPageLoad(articleData.title);
+                    
+                    // Increment view count once per session
+                    const viewedKey = `viewed_article_${articleData.id}`;
+                    if (!sessionStorage.getItem(viewedKey)) {
+                        const articleRef = doc(db, 'updateArticles', articleData.id);
+                        updateDoc(articleRef, { viewCount: increment(1) })
+                            .then(() => sessionStorage.setItem(viewedKey, 'true'))
+                            .catch(err => console.error("Failed to increment view count", err));
+                    }
                 } else {
                     setError('Article not found.');
                     onPageLoad('Not Found');
                     setArticle(null);
                 }
+                setLoading(false);
             }
-            setLoading(false);
         }, (err) => {
             console.error("Error fetching article:", err);
             setError('Failed to load article content.');
@@ -135,17 +144,23 @@ const UpdateArticleView: React.FC<UpdateArticleViewProps> = ({ slug, onBack, onP
             if (match) {
                 const [, type, id] = match;
                 if (type === 'test') {
-                    return <div className="my-6" key={index}><EmbeddedTest testId={id} {...embedProps} /></div>;
+                    return <div className="my-6 not-prose" key={index}><EmbeddedTest testId={id} {...embedProps} /></div>;
                 }
                 if (type === 'category') {
-                     return <div className="my-6" key={index}><EmbeddedCategory categoryId={id} onNavigate={embedProps.onNavigate} /></div>;
+                     return <div className="my-6 not-prose" key={index}><EmbeddedCategory categoryId={id} onNavigate={embedProps.onNavigate} /></div>;
                 }
                 return null;
             } else {
-                return <div key={index} dangerouslySetInnerHTML={{ __html: part.replace(/\n/g, '<br />') }} />;
+                return <div key={index} dangerouslySetInnerHTML={{ __html: part }} />;
             }
         });
     };
+
+    const formatDate = (timestamp: Timestamp) => {
+        if (!timestamp) return '';
+        return timestamp.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    };
+
 
     if (loading) return <SkeletonPage />;
     if (error || !article) return (
@@ -161,14 +176,19 @@ const UpdateArticleView: React.FC<UpdateArticleViewProps> = ({ slug, onBack, onP
     return (
         <div className="bg-white dark:bg-slate-900 py-12">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="mb-8">
-                    <button onClick={onBack} className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-gray-700">
-                        <ArrowLeft size={18} /> Back to Updates
-                    </button>
+                {article.featuredImageUrl && (
+                    <img src={article.featuredImageUrl} alt={article.title} className="w-full h-auto max-h-96 object-cover rounded-xl mb-8 shadow-lg" />
+                )}
+                <div className="text-center mb-8">
+                    <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100">{article.title}</h1>
+                    <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                        <span>By {article.authorName || 'Admin'}</span>
+                        <span className="mx-2">&middot;</span>
+                        <span>Published on {formatDate(article.publishAt)}</span>
+                    </div>
                 </div>
-                <div className="prose prose-indigo dark:prose-invert text-gray-700 dark:text-gray-300 mx-auto lg:max-w-none">
-                    <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">{article.title}</h1>
-                    <div className="mt-8">{renderContent()}</div>
+                <div className="prose prose-lg prose-indigo dark:prose-invert text-gray-700 dark:text-gray-300 mx-auto lg:max-w-none">
+                    {renderContent()}
                 </div>
             </div>
         </div>

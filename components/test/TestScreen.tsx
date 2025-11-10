@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { Test, UserAnswer, AnswerStatus, BilingualText } from '../../types';
-import { Clock, LayoutGrid, BookmarkPlus, BookmarkMinus, ArrowLeft, ArrowRight, CheckCircle, Flag } from 'lucide-react';
+import { Clock, LayoutGrid, BookmarkPlus, BookmarkMinus, ArrowLeft, ArrowRight, CheckCircle, Flag, Languages } from 'lucide-react';
 import QuestionPalette from './QuestionPalette';
 import ConfirmModal from '../modals/ConfirmModal';
 import ReportQuestionModal from '../modals/ReportQuestionModal';
@@ -18,6 +18,7 @@ interface TestScreenProps {
     onTimeUp: () => void;
     onSubmitTest: () => void;
     language: 'english' | 'hindi';
+    setLanguage: (lang: 'english' | 'hindi') => void;
     onExitTest: () => void;
 }
 
@@ -32,6 +33,7 @@ const TestScreen: React.FC<TestScreenProps> = ({
     onTimeUp,
     onSubmitTest,
     language,
+    setLanguage,
     onExitTest,
 }) => {
     const { user } = useContext(AuthContext);
@@ -180,6 +182,14 @@ const TestScreen: React.FC<TestScreenProps> = ({
                     
                     {/* Right Side: Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                            onClick={() => setLanguage(language === 'english' ? 'hindi' : 'english')}
+                            className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 flex items-center gap-1.5"
+                            title="Switch Language"
+                        >
+                            <Languages size={18} />
+                            <span className="text-sm font-semibold hidden sm:inline">{language === 'english' ? 'हिन्दी' : 'English'}</span>
+                        </button>
                         {user && (
                             <button
                                 onClick={() => setReportModalOpen(true)}
@@ -219,9 +229,10 @@ const TestScreen: React.FC<TestScreenProps> = ({
             
             <main className="flex-grow flex flex-col lg:flex-row gap-6 px-4 pb-4 pt-6">
                 <div className="flex-grow">
-                    <p className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6 leading-relaxed">
-                        <span className="text-indigo-600 dark:text-indigo-400">{currentQuestionIndex + 1}.</span> {questionText}
-                    </p>
+                    <p 
+                        className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: `<span class="text-indigo-600 dark:text-indigo-400">${currentQuestionIndex + 1}.</span> ${questionText.replace(/(\w+)\^([\w.-]+)/g, '$1<sup>$2</sup>')}`}}
+                    />
                     <div className="space-y-4">
                         {(questionOptions || []).map((option, index) => {
                             const key = ['A', 'B', 'C', 'D'][index];
@@ -233,7 +244,10 @@ const TestScreen: React.FC<TestScreenProps> = ({
                                     className={`w-full text-left p-4 flex items-start gap-4 border-2 rounded-lg transition-all duration-200 group ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-500 shadow-sm' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-gray-600/50'}`}
                                 >
                                     <span className={`font-bold text-sm mt-1 flex-shrink-0 flex items-center justify-center h-8 w-8 ${isSelected ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 group-hover:text-indigo-700 dark:group-hover:text-indigo-400'} rounded-md transition-colors`}>{key}</span>
-                                    <span className={`text-gray-800 dark:text-gray-100 text-left ${isSelected ? 'font-semibold' : ''}`}>{option}</span>
+                                    <span 
+                                        className={`text-gray-800 dark:text-gray-100 text-left ${isSelected ? 'font-semibold' : ''}`}
+                                        dangerouslySetInnerHTML={{ __html: option.replace(/(\w+)\^([\w.-]+)/g, '$1<sup>$2</sup>') }}
+                                    />
                                 </button>
                             )
                         })}

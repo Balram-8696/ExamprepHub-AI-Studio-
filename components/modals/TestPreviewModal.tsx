@@ -47,9 +47,10 @@ const TestPreviewModal: React.FC<TestPreviewModalProps> = ({ isOpen, onClose, te
             </div>
 
             <div className="max-h-[60vh] overflow-y-auto pr-4 space-y-6">
-                <p className="text-lg font-semibold text-gray-800 dark:text-gray-100 leading-relaxed">
-                    {questionText}
-                </p>
+                <p 
+                    className="text-lg font-semibold text-gray-800 dark:text-gray-100 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: questionText.replace(/(\w+)\^([\w.-]+)/g, '$1<sup>$2</sup>') }}
+                />
 
                 <div className="space-y-3">
                     {(questionOptions || []).map((option, index) => {
@@ -65,7 +66,10 @@ const TestPreviewModal: React.FC<TestPreviewModalProps> = ({ isOpen, onClose, te
                                 }`}
                             >
                                 <span className={`font-bold text-sm mt-1 flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-md ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200'}`}>{key}</span>
-                                <span className={`text-gray-800 dark:text-gray-200 ${isCorrect ? 'font-bold' : ''}`}>{option}</span>
+                                <span 
+                                    className={`text-gray-800 dark:text-gray-200 ${isCorrect ? 'font-bold' : ''}`}
+                                    dangerouslySetInnerHTML={{ __html: option.replace(/(\w+)\^([\w.-]+)/g, '$1<sup>$2</sup>') }}
+                                />
                                 {isCorrect && <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-500 ml-auto flex-shrink-0" />}
                             </div>
                         );
@@ -75,7 +79,10 @@ const TestPreviewModal: React.FC<TestPreviewModalProps> = ({ isOpen, onClose, te
                 {questionExplanation && (
                     <div className="mt-4 p-3 bg-indigo-50 dark:bg-indigo-900/40 border-l-4 border-indigo-500 rounded-r-lg">
                         <h4 className="font-semibold text-indigo-800 dark:text-indigo-300 mb-1">Explanation</h4>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">{questionExplanation}</p>
+                        <p 
+                            className="text-sm text-gray-700 dark:text-gray-300"
+                            dangerouslySetInnerHTML={{ __html: (questionExplanation || '').replace(/(\w+)\^([\w.-]+)/g, '$1<sup>$2</sup>') }}
+                        />
                     </div>
                 )}
             </div>

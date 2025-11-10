@@ -83,6 +83,7 @@ export interface Question {
     options: BilingualOptions;
     correctAnswer: string; // 'A', 'B', 'C', 'D'
     explanation?: BilingualText;
+    section?: string;
 }
 
 export interface Test {
@@ -98,12 +99,12 @@ export interface Test {
     updatedAt?: Timestamp;
     status: 'draft' | 'published';
     questions: Question[];
-    section?: string;
     // A test belongs to either a category or a current affairs section
     categoryId?: string;
     category?: string;
     currentAffairsSectionId?: string;
     currentAffairsSectionName?: string;
+    section?: string; // Kept for backward compatibility
 }
 
 export interface UserResult {
@@ -121,9 +122,9 @@ export interface UserResult {
     percentage: number;
     submittedAt: Timestamp;
     userAnswers?: UserAnswer[];
+    timeTakenSeconds?: number;
 }
 
-// FIX: Added missing Report interface
 export interface Report {
     id: string;
     testId: string;
@@ -169,13 +170,32 @@ export interface UpdateArticle {
   id: string;
   title: string;
   slug: string;
-  content: string;
+  content: string; // HTML content
   status: 'draft' | 'published';
-  categoryId?: string;
-  categoryName?: string;
   createdAt: Timestamp;
   updatedAt?: Timestamp;
+  publishAt: Timestamp;
+
+  // Visuals & Categorization
+  featuredImageUrl?: string;
+  featuredImageFileName?: string;
+  categoryId?: string;
+  categoryName?: string;
+  tags?: string[];
+  
+  // Authoring
+  authorName?: string;
+
+  // SEO
+  metaTitle?: string;
+  metaDescription?: string;
+  focusKeyword?: string;
+  noIndex?: boolean;
+
+  // Analytics
+  viewCount?: number;
 }
+
 
 export interface FooterLink {
     label: string;
@@ -209,6 +229,11 @@ export interface FeaturedCategoryComponentConfig {
 }
 
 export interface LatestTestsComponentConfig {
+    title: string;
+    limit: number;
+}
+
+export interface LatestUpdatesComponentConfig {
     title: string;
     limit: number;
 }
@@ -336,7 +361,6 @@ export interface TestGridComponentConfig {
 }
 
 
-// FIX: Completed the HomeComponent type definition and added HomepageSettings
 export type HomeComponent = {
     id: string;
     enabled: boolean;
@@ -344,6 +368,7 @@ export type HomeComponent = {
     | { type: 'banner'; config: BannerComponentConfig }
     | { type: 'featured_category'; config: FeaturedCategoryComponentConfig }
     | { type: 'latest_tests'; config: LatestTestsComponentConfig }
+    | { type: 'latest_updates'; config: LatestUpdatesComponentConfig }
     | { type: 'recent_tests'; config: RecentTestsComponentConfig }
     | { type: 'categories_grid'; config: CategoriesGridComponentConfig }
     | { type: 'current_affairs_grid'; config: CurrentAffairsGridComponentConfig }

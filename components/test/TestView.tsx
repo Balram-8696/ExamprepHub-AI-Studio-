@@ -211,6 +211,7 @@ const TestView: React.FC<TestViewProps> = ({ test, action, resultData, onExitTes
                     onTimeUp={handleTimeUp}
                     onSubmitTest={calculateAndSubmitResults}
                     language={language}
+                    setLanguage={setLanguage}
                     onExitTest={handleExit}
                 />
             )}

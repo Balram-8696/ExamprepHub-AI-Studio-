@@ -171,10 +171,10 @@ const PracticeScreen: React.FC<PracticeScreenProps> = ({ test, onExit }) => {
 
             <main className="flex-grow flex flex-col lg:flex-row gap-6 px-4 pb-4">
                 <div className="flex-grow">
-                    <p className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6 leading-relaxed">
-                        <span className="text-gray-500 dark:text-gray-400">{currentIndex + 1}. </span>
-                        {questionText}
-                    </p>
+                    <p 
+                        className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: `<span class="text-gray-500 dark:text-gray-400">${currentIndex + 1}. </span>${questionText.replace(/(\w+)\^([\w.-]+)/g, '$1<sup>$2</sup>')}`}}
+                    />
                     <div className="space-y-4 mb-6">
                         {questionOptions.map((option, index) => {
                             const key = ['A', 'B', 'C', 'D'][index];
@@ -205,7 +205,10 @@ const PracticeScreen: React.FC<PracticeScreenProps> = ({ test, onExit }) => {
                                 >
                                     <div className="flex items-start gap-4">
                                         <span className={`font-bold text-sm mt-1 flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-md ${isAnswered ? (isCorrect ? 'bg-emerald-600 text-white' : isSelected ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-gray-600') : 'bg-gray-100 dark:bg-gray-600 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50'}`}>{key}</span>
-                                        <span className={`text-gray-800 dark:text-gray-100 ${isSelected ? 'font-semibold' : ''}`}>{option}</span>
+                                        <span 
+                                            className={`text-gray-800 dark:text-gray-100 ${isSelected ? 'font-semibold' : ''}`}
+                                            dangerouslySetInnerHTML={{ __html: option.replace(/(\w+)\^([\w.-]+)/g, '$1<sup>$2</sup>')}}
+                                        />
                                     </div>
                                     {isAnswered && icon}
                                 </button>
@@ -216,9 +219,10 @@ const PracticeScreen: React.FC<PracticeScreenProps> = ({ test, onExit }) => {
                     {isAnswered && questionExplanation && (
                         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-5 animate-fade-in">
                             <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-3 text-lg flex items-center"><Info className="w-5 h-5 mr-2 text-indigo-600 dark:text-indigo-400" />Explanation</h4>
-                            <div className="text-gray-800 dark:text-gray-200 p-4 bg-indigo-50 dark:bg-slate-800 border border-indigo-200 dark:border-gray-700 rounded-lg min-h-[50px] prose prose-sm dark:prose-invert max-w-none">
-                                <p>{questionExplanation}</p>
-                            </div>
+                            <div 
+                                className="text-gray-800 dark:text-gray-200 p-4 bg-indigo-50 dark:bg-slate-800 border border-indigo-200 dark:border-gray-700 rounded-lg min-h-[50px] prose prose-sm dark:prose-invert max-w-none"
+                                dangerouslySetInnerHTML={{ __html: (questionExplanation || '').replace(/(\w+)\^([\w.-]+)/g, '$1<sup>$2</sup>') }}
+                            ></div>
                         </div>
                     )}
                 </div>

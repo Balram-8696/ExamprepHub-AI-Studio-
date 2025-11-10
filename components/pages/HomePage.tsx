@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { collection, onSnapshot, query, orderBy, where, doc, getDoc, limit, Timestamp, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { Category, Test, UserResult, TestStateLocal, HomepageSettings, HomeComponent, BannerComponentConfig, FeaturedCategoryComponentConfig, LatestTestsComponentConfig, CategoriesGridComponentConfig, RichTextComponentConfig, RecentTestsComponentConfig, Announcement, AnnouncementsComponentConfig, TestimonialsComponentConfig, StatsCounterComponentConfig, FAQComponentConfig, CTAComponentConfig, FAQ, SyllabusComponentConfig, NotesComponentConfig, InformationComponentConfig, NewAdditionsComponentConfig, RecommendedTestsComponentConfig, CountdownTimerComponentConfig, VideoEmbedComponentConfig, LeaderboardComponentConfig, ImageGalleryComponentConfig, FeaturedTutorsComponentConfig, CurrentAffairsSection, CurrentAffairsGridComponentConfig, TestGridComponentConfig, StudyMaterial } from '../../types';
+import { Category, Test, UserResult, TestStateLocal, HomepageSettings, HomeComponent, BannerComponentConfig, FeaturedCategoryComponentConfig, LatestTestsComponentConfig, CategoriesGridComponentConfig, RichTextComponentConfig, RecentTestsComponentConfig, Announcement, AnnouncementsComponentConfig, TestimonialsComponentConfig, StatsCounterComponentConfig, FAQComponentConfig, CTAComponentConfig, FAQ, SyllabusComponentConfig, NotesComponentConfig, InformationComponentConfig, NewAdditionsComponentConfig, RecommendedTestsComponentConfig, CountdownTimerComponentConfig, VideoEmbedComponentConfig, LeaderboardComponentConfig, ImageGalleryComponentConfig, FeaturedTutorsComponentConfig, CurrentAffairsSection, CurrentAffairsGridComponentConfig, TestGridComponentConfig, StudyMaterial, LatestUpdatesComponentConfig, UpdateArticle } from '../../types';
 import { AuthContext } from '../../App';
 import TestCard from '../home/TestCard';
 import DesktopSidebar from '../layout/DesktopSidebar';
-import { showMessage, getCategoryStyle } from '../../utils/helpers';
+import { showMessage, getCategoryStyle, formatRelativeTime } from '../../utils/helpers';
 import { Shield, ArrowRight, Star, Megaphone, X, Quote, ChevronDown, TrendingUp, HelpCircle, Info, Trophy, Users, Newspaper, BookCopy, File as FileIcon, Youtube } from 'lucide-react';
 import SkeletonCard from '../skeletons/SkeletonCard';
 import DynamicIcon from '../layout/DynamicIcon';
@@ -24,6 +24,7 @@ interface HomePageProps {
     selectedCurrentAffairsSection: { id: string, name: string };
     searchQuery: string;
     onNavigate: (view: string) => void;
+    onOpenAuthModal: (initialView?: 'signin' | 'signup') => void;
     isPreview?: boolean;
     previewHomepageSettings?: HomepageSettings | null;
     previewCategorySettings?: HomepageSettings | null;
@@ -92,6 +93,73 @@ const CountdownTimerComponent: React.FC<{ config: CountdownTimerComponentConfig 
     );
 };
 
+const LatestUpdatesComponent: React.FC<{ config: LatestUpdatesComponentConfig; onNavigate: (path: string) => void }> = ({ config, onNavigate }) => {
+    const [articles, setArticles] = useState<UpdateArticle[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const q = query(
+            collection(db, 'updateArticles'), 
+            where('status', '==', 'published')
+        );
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const articlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UpdateArticle));
+            articlesData.sort((a, b) => (b.publishAt?.toDate().getTime() || 0) - (a.publishAt?.toDate().getTime() || 0));
+            setArticles(articlesData.slice(0, config.limit || 3));
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching latest updates:", error);
+            setLoading(false);
+        });
+        return unsubscribe;
+    }, [config.limit]);
+    
+    const getSnippet = (content: string) => {
+        const text = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        return text.length > 80 ? text.substring(0, 80) + '...' : text;
+    };
+
+    if (loading && articles.length === 0) {
+        return (
+            <section>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">{config.title}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                         <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border dark:border-gray-700 animate-pulse">
+                            <div className="w-full h-40 bg-gray-200 dark:bg-gray-700 rounded-t-xl"></div>
+                            <div className="p-4 space-y-3">
+                                <div className="h-5 w-3/4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        );
+    }
+    
+    if (articles.length === 0) return null;
+
+    return (
+        <section>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">{config.title}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {articles.map(article => (
+                    <button key={article.id} onClick={() => onNavigate(`update/${article.slug}`)} className="text-left bg-white dark:bg-gray-800 rounded-xl shadow-md border dark:border-gray-700 overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
+                        <img src={article.featuredImageUrl || `https://via.placeholder.com/400x200.png?text=${article.title.split(' ').join('+')}`} alt={article.title} className="w-full h-40 object-cover" />
+                        <div className="p-4">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{formatRelativeTime(article.publishAt)}</p>
+                            <h3 className="font-bold text-gray-800 dark:text-gray-100 mt-1 truncate">{article.title}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{getSnippet(article.content)}</p>
+                        </div>
+                    </button>
+                ))}
+            </div>
+        </section>
+    );
+};
+
 const HomePage: React.FC<HomePageProps> = ({ 
     onInitiateTestView,
     onShowInstructions,
@@ -104,6 +172,7 @@ const HomePage: React.FC<HomePageProps> = ({
     selectedCurrentAffairsSection,
     searchQuery,
     onNavigate,
+    onOpenAuthModal,
     isPreview = false,
     previewHomepageSettings,
     previewCategorySettings
@@ -255,7 +324,6 @@ const HomePage: React.FC<HomePageProps> = ({
             }
         });
         
-        // FIX: The field name `isActive` was incorrectly written as `"isActive, "` which caused a query error. This has been corrected to "isActive".
         const qAnnounce = query(collection(db, 'announcements'), where("isActive", "==", true), limit(1));
         const unsubscribeAnnounce = onSnapshot(qAnnounce, (snapshot) => {
             if (!snapshot.empty) {
@@ -398,7 +466,10 @@ const HomePage: React.FC<HomePageProps> = ({
         const test = allTests.find(t => t.id === testId);
         if (!test) return;
         if (action === 'start') {
-            if (!user) { showMessage("Please log in to start a test.", true); return; }
+            if (!user) {
+                onOpenAuthModal('signup');
+                return;
+            }
             onShowInstructions(test);
         } else if (action === 'resume') {
             onInitiateTestView({ test, action: 'resume', language: 'english' });
@@ -604,13 +675,17 @@ const HomePage: React.FC<HomePageProps> = ({
             case 'banner': {
                 const config = component.config as BannerComponentConfig;
                 return (
-                    <section className="p-6 sm:p-12 rounded-xl shadow-lg text-center border-t-4 border-indigo-500 bg-cover bg-center text-white relative overflow-hidden bg-white dark:bg-gray-800" style={{ backgroundImage: config.imageUrl ? `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${config.imageUrl})` : 'none' }}>
+                    <section className="p-6 sm:p-8 rounded-xl shadow-lg text-center border-t-4 border-indigo-500 bg-cover bg-center text-white relative overflow-hidden bg-white dark:bg-gray-800" style={{ backgroundImage: config.imageUrl ? `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${config.imageUrl})` : 'none' }}>
                          <div className="relative z-10">
-                            <h1 className={`text-3xl sm:text-4xl font-extrabold mb-4 ${config.imageUrl ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{config.title}</h1>
+                            <h1 className={`text-2xl sm:text-3xl font-extrabold mb-4 ${config.imageUrl ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{config.title}</h1>
                             <p className={`text-lg mb-6 max-w-2xl mx-auto ${config.imageUrl ? 'text-gray-200' : 'text-gray-600 dark:text-gray-300'}`}>{config.subtitle}</p>
                         </div>
                     </section>
                 );
+            }
+            case 'latest_updates': {
+                const config = component.config as LatestUpdatesComponentConfig;
+                return <LatestUpdatesComponent config={config} onNavigate={onNavigate} />;
             }
             case 'test_grid': {
                 const config = component.config as TestGridComponentConfig;

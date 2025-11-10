@@ -3,7 +3,7 @@ import { doc, onSnapshot, setDoc, collection, query, orderBy } from 'firebase/fi
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../../../services/firebase';
 import { showMessage } from '../../../utils/helpers';
-import { Category, HomepageSettings, HomeComponent, BannerComponentConfig, FeaturedCategoryComponentConfig, LatestTestsComponentConfig, CategoriesGridComponentConfig, RichTextComponentConfig, RecentTestsComponentConfig, AnnouncementsComponentConfig, TestimonialsComponentConfig, Testimonial, StatsCounterComponentConfig, Stat, FAQComponentConfig, FAQ, CTAComponentConfig, SyllabusComponentConfig, NotesComponentConfig, InformationComponentConfig, NewAdditionsComponentConfig, RecommendedTestsComponentConfig, CountdownTimerComponentConfig, VideoEmbedComponentConfig, LeaderboardComponentConfig, ImageGalleryComponentConfig, GalleryImage, FeaturedTutorsComponentConfig, Tutor, CurrentAffairsGridComponentConfig, TestGridComponentConfig, CurrentAffairsSection } from '../../../types';
+import { Category, HomepageSettings, HomeComponent, BannerComponentConfig, FeaturedCategoryComponentConfig, LatestTestsComponentConfig, CategoriesGridComponentConfig, RichTextComponentConfig, RecentTestsComponentConfig, AnnouncementsComponentConfig, TestimonialsComponentConfig, Testimonial, StatsCounterComponentConfig, Stat, FAQComponentConfig, FAQ, CTAComponentConfig, SyllabusComponentConfig, NotesComponentConfig, InformationComponentConfig, NewAdditionsComponentConfig, RecommendedTestsComponentConfig, CountdownTimerComponentConfig, VideoEmbedComponentConfig, LeaderboardComponentConfig, ImageGalleryComponentConfig, GalleryImage, FeaturedTutorsComponentConfig, Tutor, CurrentAffairsGridComponentConfig, TestGridComponentConfig, CurrentAffairsSection, LatestUpdatesComponentConfig } from '../../../types';
 import { GoogleGenAI, Type } from "@google/genai";
 import { LayoutGrid, Wand2, Loader2, Save, Trash2, Link as LinkIcon, PlusCircle, Pencil, LayoutPanelTop, ArrowUp, ArrowDown, GripVertical, Image as ImageIcon, FileText, List, Grid, Type as TypeIcon, History, Bell, Megaphone, MessageSquareQuote, TrendingUp, HelpCircle, Info, ClipboardList, StickyNote, Sparkles, Star, Timer, Youtube, Trophy, Users, Newspaper, Eye } from 'lucide-react';
 import Modal from '../../modals/Modal';
@@ -11,12 +11,12 @@ import LayoutPreviewModal from '../../modals/LayoutPreviewModal';
 
 const componentTypes: { type: HomeComponent['type']; label: string; icon: React.ElementType }[] = [
     { type: 'banner', label: 'Banner', icon: ImageIcon },
-    { type: 'test_grid', label: 'Test Grid', icon: Grid },
     { type: 'announcements', label: 'Announcements Bar', icon: Bell },
     { type: 'cta', label: 'Call to Action', icon: Megaphone },
     { type: 'categories_grid', label: 'Categories Grid', icon: Grid },
     { type: 'current_affairs_grid', label: 'Current Affairs Grid', icon: Newspaper },
     { type: 'latest_tests', label: 'Latest Tests', icon: List },
+    { type: 'latest_updates', label: 'Latest Updates', icon: Newspaper },
     { type: 'new_additions', label: 'New Additions (with badge)', icon: Sparkles },
     { type: 'recent_tests', label: 'Recent User Tests', icon: History },
     { type: 'recommended_tests', label: 'Recommended Tests', icon: Star },
@@ -33,6 +33,7 @@ const componentTypes: { type: HomeComponent['type']; label: string; icon: React.
     { type: 'notes', label: 'Notes Block', icon: StickyNote },
     { type: 'information', label: 'Information Block', icon: Info },
     { type: 'rich_text', label: 'Rich Text Block', icon: TypeIcon },
+    { type: 'test_grid', label: 'Test Grid', icon: Grid },
 ];
 
 const ManageCategoryLayout: React.FC = () => {
@@ -99,6 +100,7 @@ const ManageCategoryLayout: React.FC = () => {
             case 'banner': defaultConfig = { title: 'New Banner', subtitle: 'Banner subtitle', imageUrl: null }; break;
             case 'featured_category': defaultConfig = { title: 'Featured Category', categoryId: null }; break;
             case 'latest_tests': defaultConfig = { title: 'Latest Tests', limit: 4 }; break;
+            case 'latest_updates': defaultConfig = { title: 'Latest Updates', limit: 3 }; break;
             case 'categories_grid': defaultConfig = { title: 'Explore Categories' }; break;
             case 'current_affairs_grid': defaultConfig = { title: 'Current Affairs' }; break;
             case 'rich_text': defaultConfig = { content: '<h2>New Section</h2><p>Add your custom text or HTML content here.</p>' }; break;
@@ -446,6 +448,7 @@ const AIImageGeneratorModal: React.FC<{
     );
 };
 
+// Edit Component Modal
 interface EditModalProps { isOpen: boolean; onClose: () => void; component: HomeComponent; onSave: (comp: HomeComponent) => void; allCategories: Category[]; }
 const EditComponentModal: React.FC<EditModalProps> = ({ isOpen, onClose, component, onSave, allCategories }) => {
     const [editedConfig, setEditedConfig] = useState(component.config);
