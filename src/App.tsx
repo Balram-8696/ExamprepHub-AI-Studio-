@@ -13,16 +13,20 @@ export const routes: RouteObject[] = [
         lazy: () => import('./pages/HomePage'),
       },
       {
-        path: "/about",
+        path: "/about-our-mission",
         lazy: () => import('./pages/AboutPage'),
       },
       {
-        path: "/contact",
+        path: "/contact-us",
         lazy: () => import('./pages/ContactPage'),
       },
       {
         path: "/admin",
         lazy: () => import('./components/admin/AdminDashboard'),
+      },
+      {
+        path: "/:categoryName/:testName",
+        lazy: () => import('./components/pages/TestView'),
       }
     ]
   }
@@ -37,10 +41,10 @@ function Layout() {
             <Link to="/">Home</Link>
           </li>
           <li>
-            <Link to="/about">About</Link>
+            <Link to="/about-our-mission">About</Link>
           </li>
           <li>
-            <Link to="/contact">Contact</Link>
+            <Link to="/contact-us">Contact</Link>
           </li>
           <li>
             <Link to="/admin">Admin</Link>
