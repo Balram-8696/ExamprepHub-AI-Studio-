@@ -99,6 +99,30 @@
       .animate-pulse-badge {
         animation: pulse-badge 2s infinite;
       }
+      /* Animation for submission screen */
+      @keyframes rise-bar1 {
+        0% { y: 90; height: 10; opacity: 0.4; }
+        30% { y: 40; height: 60; opacity: 1; }
+        60% { y: 90; height: 10; opacity: 0.4; }
+        100% { y: 90; height: 10; opacity: 0.4; }
+      }
+      @keyframes rise-bar2 {
+        0% { y: 90; height: 10; opacity: 0.4; }
+        15% { y: 90; height: 10; opacity: 0.4; }
+        45% { y: 20; height: 80; opacity: 1; }
+        75% { y: 90; height: 10; opacity: 0.4; }
+        100% { y: 90; height: 10; opacity: 0.4; }
+      }
+      @keyframes rise-bar3 {
+        0% { y: 90; height: 10; opacity: 0.4; }
+        30% { y: 90; height: 10; opacity: 0.4; }
+        60% { y: 60; height: 40; opacity: 1; }
+        90% { y: 90; height: 10; opacity: 0.4; }
+        100% { y: 90; height: 10; opacity: 0.4; }
+      }
+      .bar1 { animation: rise-bar1 1.8s ease-in-out infinite; }
+      .bar2 { animation: rise-bar2 1.8s ease-in-out infinite; }
+      .bar3 { animation: rise-bar3 1.8s ease-in-out infinite; }
       /* Custom Scrollbar Styles */
       .pretty-scrollbar::-webkit-scrollbar {
         width: 8px;

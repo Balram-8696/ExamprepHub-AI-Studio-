@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { UpdateArticle } from '../../types';
+import { UpdateArticle, ArticleBlock } from '../../types';
 import { showMessage } from '../../utils/helpers';
 import { Newspaper, Inbox, ChevronRight } from 'lucide-react';
 import SkeletonList from '../skeletons/SkeletonList';
@@ -29,9 +29,13 @@ const UpdatesPage: React.FC<UpdatesPageProps> = ({ onNavigate }) => {
         return () => unsubscribe();
     }, []);
 
-    const getSnippet = (content: string) => {
-        const text = content.replace(/\[EMBED.*?\]/g, '').replace(/<[^>]*>/g, ' ');
-        const trimmedText = text.replace(/\s+/g, ' ').trim();
+    const getSnippet = (blocks: ArticleBlock[]) => {
+        if (!blocks) return '';
+        const textContent = blocks
+            .filter(block => ['paragraph', 'h2', 'h3', 'quote'].includes(block.type))
+            .map(block => (block as any).content)
+            .join(' ');
+        const trimmedText = textContent.replace(/\s+/g, ' ').trim();
         return trimmedText.length > 150 ? trimmedText.substring(0, 150) + '...' : trimmedText;
     };
 
@@ -70,7 +74,7 @@ const UpdatesPage: React.FC<UpdatesPageProps> = ({ onNavigate }) => {
                                         <span>{formatDate(article.publishAt)}</span>
                                     </div>
                                     <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mt-1">{article.title}</h2>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 flex-grow">{getSnippet(article.content)}</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 flex-grow">{getSnippet(article.blocks)}</p>
                                     <div className="flex items-center text-indigo-600 dark:text-indigo-400 font-semibold text-sm mt-4">
                                         Read More <ChevronRight className="w-4 h-4 ml-1" />
                                     </div>

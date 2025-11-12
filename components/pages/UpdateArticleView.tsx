@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { collection, query, where, onSnapshot, limit, doc, getDoc, updateDoc, increment, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, limit, doc, getDoc, updateDoc, increment, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { UpdateArticle, Test, Category, UserResult, TestStateLocal } from '../../types';
-import { FileWarning, ArrowLeft, Loader2 } from 'lucide-react';
+import { UpdateArticle, Test, Category, UserResult, TestStateLocal, ArticleBlock } from '../../types';
+import { FileWarning, Loader2, Link } from 'lucide-react';
 import SkeletonPage from '../skeletons/SkeletonPage';
 import TestCard from '../home/TestCard';
 import { AuthContext } from '../../App';
-import { showMessage } from '../../utils/helpers';
 import DynamicIcon from '../layout/DynamicIcon';
 
 interface EmbeddedTestProps {
@@ -30,7 +29,7 @@ const EmbeddedTest: React.FC<EmbeddedTestProps> = ({ testId, onInitiateTestView,
         });
 
         if (user) {
-            const resultsQuery = query(collection(db, 'results'), where('userId', '==', user.uid), where('testId', '==', testId));
+            const resultsQuery = query(collection(db, 'results'), where('userId', '==', user.uid), where('testId', '==', testId), orderBy('submittedAt', 'desc'), limit(1));
             const unsub = onSnapshot(resultsQuery, snap => {
                 if (!snap.empty) {
                     setUserResult(snap.docs[0].data() as UserResult);
@@ -90,7 +89,7 @@ interface UpdateArticleViewProps {
 }
 
 const UpdateArticleView: React.FC<UpdateArticleViewProps> = ({ slug, onPageLoad, ...embedProps }) => {
-    const [article, setArticle] = useState<UpdateArticle | null>(null);
+    const [article, setArticle] = useState<(UpdateArticle & {content?: string}) | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -105,12 +104,11 @@ const UpdateArticleView: React.FC<UpdateArticleViewProps> = ({ slug, onPageLoad,
                 setArticle(null);
                  setLoading(false);
             } else {
-                const articleData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as UpdateArticle;
+                const articleData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as UpdateArticle & {content?: string};
                 if (articleData.status === 'published') {
                     setArticle(articleData);
                     onPageLoad(articleData.title);
                     
-                    // Increment view count once per session
                     const viewedKey = `viewed_article_${articleData.id}`;
                     if (!sessionStorage.getItem(viewedKey)) {
                         const articleRef = doc(db, 'updateArticles', articleData.id);
@@ -134,27 +132,50 @@ const UpdateArticleView: React.FC<UpdateArticleViewProps> = ({ slug, onPageLoad,
         return () => unsubscribe();
     }, [slug, onPageLoad]);
 
-    const renderContent = () => {
-        if (!article) return null;
-
-        const parts = article.content.split(/(\[EMBED.*?\])/g);
-        
-        return parts.map((part, index) => {
-            const match = part.match(/\[EMBED type="(\w+)" id="([\w-]+)" title="(.*?)"\]/);
-            if (match) {
-                const [, type, id] = match;
-                if (type === 'test') {
-                    return <div className="my-6 not-prose" key={index}><EmbeddedTest testId={id} {...embedProps} /></div>;
-                }
-                if (type === 'category') {
-                     return <div className="my-6 not-prose" key={index}><EmbeddedCategory categoryId={id} onNavigate={embedProps.onNavigate} /></div>;
-                }
+    const renderBlock = (block: ArticleBlock) => {
+        switch (block.type) {
+            case 'h2':
+                return <h2 key={block.id} className="text-3xl font-bold mt-8 mb-4" dangerouslySetInnerHTML={{ __html: block.content }} />;
+            case 'h3':
+                return <h3 key={block.id} className="text-2xl font-bold mt-6 mb-3" dangerouslySetInnerHTML={{ __html: block.content }} />;
+            case 'paragraph':
+                return <p key={block.id} dangerouslySetInnerHTML={{ __html: block.content }} />;
+            case 'image':
+                return (
+                    <figure key={block.id} className="my-6">
+                        <img src={block.src} alt={block.caption || article?.title} className="rounded-lg shadow-md w-full" />
+                        {block.caption && <figcaption className="text-center text-sm text-gray-500 mt-2">{block.caption}</figcaption>}
+                    </figure>
+                );
+            case 'list':
+                const ListTag = block.ordered ? 'ol' : 'ul';
+                return (
+                    <ListTag key={block.id} className="list-inside list-disc">
+                        {block.items.map((item, index) => <li key={index} dangerouslySetInnerHTML={{ __html: item }} />)}
+                    </ListTag>
+                );
+            case 'quote':
+                return (
+                    <blockquote key={block.id} className="border-l-4 border-indigo-500 pl-4 italic text-gray-600 dark:text-gray-400">
+                        <p dangerouslySetInnerHTML={{ __html: block.content }} />
+                        {block.author && <footer className="mt-2 text-sm not-italic">- {block.author}</footer>}
+                    </blockquote>
+                );
+            case 'code':
+                return (
+                    <pre key={block.id} className="bg-gray-800 text-white p-4 rounded-lg overflow-x-auto text-sm">
+                        <code>{block.code}</code>
+                    </pre>
+                );
+            case 'test_embed':
+                return <div className="my-6 not-prose" key={block.id}><EmbeddedTest testId={block.testId} {...embedProps} /></div>;
+            case 'category_embed':
+                return <div className="my-6 not-prose" key={block.id}><EmbeddedCategory categoryId={block.categoryId} onNavigate={embedProps.onNavigate} /></div>;
+            default:
                 return null;
-            } else {
-                return <div key={index} dangerouslySetInnerHTML={{ __html: part }} />;
-            }
-        });
+        }
     };
+
 
     const formatDate = (timestamp: Timestamp) => {
         if (!timestamp) return '';
@@ -188,7 +209,12 @@ const UpdateArticleView: React.FC<UpdateArticleViewProps> = ({ slug, onPageLoad,
                     </div>
                 </div>
                 <div className="prose prose-lg prose-indigo dark:prose-invert text-gray-700 dark:text-gray-300 mx-auto lg:max-w-none">
-                    {renderContent()}
+                     {/* Backward compatibility for old articles */}
+                    {article.content && !article.blocks ? (
+                        <div dangerouslySetInnerHTML={{ __html: article.content }} />
+                    ) : (
+                        (article.blocks || []).map(block => renderBlock(block))
+                    )}
                 </div>
             </div>
         </div>

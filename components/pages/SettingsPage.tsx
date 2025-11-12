@@ -1,7 +1,6 @@
 import React, { useState, useContext } from 'react';
-import { ArrowLeft, KeyRound, Sun, Moon, Loader2, Bell, Shield, Trash2 } from 'lucide-react';
+import { Sun, Moon, Loader2, Bell, Shield, Trash2 } from 'lucide-react';
 import { useTheme } from '../../ThemeContext';
-import { updatePassword } from 'firebase/auth';
 import { auth, db } from '../../services/firebase';
 import { showMessage } from '../../utils/helpers';
 import { AuthContext } from '../../App';
@@ -9,7 +8,6 @@ import { doc, updateDoc, collection, query, where, getDocs, writeBatch } from 'f
 import ConfirmModal from '../modals/ConfirmModal';
 
 interface SettingsPageProps {
-    onBack: () => void;
 }
 
 const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void; disabled?: boolean }> = ({ checked, onChange, disabled }) => (
@@ -19,54 +17,15 @@ const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void; disabled?
     </label>
 );
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
+const SettingsPage: React.FC<SettingsPageProps> = () => {
     const { theme, toggleTheme } = useTheme();
     const { user, userProfile } = useContext(AuthContext);
-    
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmNewPassword, setConfirmNewPassword] = useState('');
-    const [error, setError] = useState('');
-    const [loadingPassword, setLoadingPassword] = useState(false);
 
     const [notificationSettings, setNotificationSettings] = useState(userProfile?.notificationSettings ?? { newContent: true, adminReplies: true });
     const [isSavingNotifications, setIsSavingNotifications] = useState(false);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeletingData, setIsDeletingData] = useState(false);
-
-    const handlePasswordChange = async (e: React.FormEvent) => {
-        e.preventDefault();
-        
-        if (newPassword.length < 6) {
-            setError("Password should be at least 6 characters long.");
-            return;
-        }
-
-        if (newPassword !== confirmNewPassword) {
-            setError("Passwords do not match.");
-            return;
-        }
-        if (!auth.currentUser) {
-            setError("No user is signed in.");
-            return;
-        }
-        setLoadingPassword(true);
-        setError('');
-        try {
-            await updatePassword(auth.currentUser, newPassword);
-            showMessage('Password updated successfully.');
-            setNewPassword('');
-            setConfirmNewPassword('');
-        } catch (err: any) {
-            let message = err.message || "An unknown error occurred.";
-            if (message.includes('auth/requires-recent-login')) {
-                message = "This is a sensitive operation. Please sign out and sign in again before changing your password.";
-            }
-            setError(message);
-        } finally {
-            setLoadingPassword(false);
-        }
-    };
 
     const handleToggleNotification = async (key: 'newContent' | 'adminReplies') => {
         if (!user) return;
@@ -126,12 +85,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
     return (
         <div className="bg-slate-50 dark:bg-slate-900 min-h-full animate-fade-in">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-                <div className="mb-8">
-                    <button onClick={onBack} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700 shadow-sm">
-                        <ArrowLeft size={18} /> Back
-                    </button>
-                </div>
-                
                 <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 mb-8">Settings</h1>
 
                 <div className="space-y-8">
@@ -170,29 +123,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
                                 <ToggleSwitch checked={notificationSettings.adminReplies ?? true} onChange={() => handleToggleNotification('adminReplies')} disabled={isSavingNotifications} />
                             </div>
                         </div>
-                    </div>
-
-                    {/* Security Settings */}
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Security</h2>
-                        <form onSubmit={handlePasswordChange} className="space-y-4">
-                            <h3 className="font-semibold text-gray-700 dark:text-gray-200">Change Password</h3>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">New Password</label>
-                                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500" required />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Confirm New Password</label>
-                                <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500" required />
-                            </div>
-                            {error && <p className="text-red-500 text-sm">{error}</p>}
-                            <div className="text-right">
-                                <button type="submit" disabled={loadingPassword} className="px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 flex items-center gap-2 ml-auto shadow-sm">
-                                    {loadingPassword ? <Loader2 className="animate-spin" /> : <KeyRound size={16}/>}
-                                    Update Password
-                                </button>
-                            </div>
-                        </form>
                     </div>
 
                     {/* Data & Privacy Settings */}

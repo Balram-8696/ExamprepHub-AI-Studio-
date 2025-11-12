@@ -87,7 +87,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialView = 's
                     name,
                     email: user.email,
                     createdAt: serverTimestamp(),
-                    role: role
+                    role: role,
+                    mobileNumber: '',
+                    notificationSettings: { newContent: true, adminReplies: true },
                 });
                 showMessage('Sign up successful! Welcome.');
             } else {
@@ -132,7 +134,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialView = 's
                     name: user.displayName || user.email!.split('@')[0],
                     email: user.email,
                     createdAt: serverTimestamp(),
-                    role: role
+                    role: role,
+                    mobileNumber: '',
+                    notificationSettings: { newContent: true, adminReplies: true },
                 });
             }
 
