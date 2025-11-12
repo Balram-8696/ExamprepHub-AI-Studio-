@@ -197,31 +197,31 @@ const Header: React.FC<HeaderProps> = ({
                             {profileDropdownOpen && (
                                 <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-700 rounded-xl shadow-lg z-50 origin-top-right border border-gray-100 dark:border-gray-600 animate-scale-in">
                                     <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-600">
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Signed in as</p>
-                                        <p className="font-semibold text-gray-800 dark:text-gray-100 truncate mt-1">{userProfile?.name || user.email}</p>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 font-bold">Signed in as</p>
+                                        <p className="font-bold text-gray-800 dark:text-gray-100 truncate mt-1">{userProfile?.name || user.email}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate font-bold">{user.email}</p>
                                     </div>
                                     <div className="py-2">
                                         {userProfile?.role === 'admin' && (
-                                            <button onClick={() => { onNavigate('admin'); setProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                            <button onClick={() => { onNavigate('admin'); setProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors font-bold">
                                                 Admin Dashboard
                                             </button>
                                         )}
-                                        <button onClick={() => { onNavigate('profile'); setProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                        <button onClick={() => { onNavigate('profile'); setProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors font-bold">
                                             My Profile
                                         </button>
-                                        <button onClick={() => { onNavigate('settings'); setProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                        <button onClick={() => { onNavigate('settings'); setProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors font-bold">
                                             Settings
                                         </button>
-                                        <button onClick={() => { onNavigate('contact'); setProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                        <button onClick={() => { onNavigate('contact'); setProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors font-bold">
                                             Contact Us
                                         </button>
-                                        <button onClick={() => { onOpenChat(); setProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                        <button onClick={() => { onOpenChat(); setProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors font-bold">
                                             Chat with us
                                         </button>
                                     </div>
                                     <div className="py-2 border-t border-gray-100 dark:border-gray-600">
-                                        <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors font-medium">
+                                        <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors font-bold">
                                             Sign out
                                         </button>
                                     </div>

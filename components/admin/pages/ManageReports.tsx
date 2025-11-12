@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-// FIX: Add `serverTimestamp` and `getDoc` to the imports from `firebase/firestore` to resolve the 'Cannot find name' error and to fetch user data.
 import { collection, onSnapshot, query, orderBy, where, doc, updateDoc, Timestamp, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '../../../services/firebase';
 import { Report } from '../../../types';

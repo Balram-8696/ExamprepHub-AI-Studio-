@@ -166,11 +166,22 @@ export interface CustomPage {
     updatedAt?: Timestamp;
 }
 
+export type ArticleBlock =
+    | { id: string; type: 'h2'; content: string }
+    | { id: string; type: 'h3'; content: string }
+    | { id: string; type: 'paragraph'; content: string }
+    | { id: string; type: 'image'; src: string; caption: string; fileName: string }
+    | { id: string; type: 'list'; items: string[]; ordered: boolean }
+    | { id: string; type: 'quote'; content: string; author: string }
+    | { id: string; type: 'test_embed'; testId: string }
+    | { id: string; type: 'category_embed'; categoryId: string }
+    | { id: string; type: 'code'; code: string; language: string };
+
 export interface UpdateArticle {
   id: string;
-  title: string;
+  title: string; // This will be treated as H1
   slug: string;
-  content: string; // HTML content
+  blocks: ArticleBlock[];
   status: 'draft' | 'published';
   createdAt: Timestamp;
   updatedAt?: Timestamp;

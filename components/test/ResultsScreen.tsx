@@ -3,9 +3,37 @@ import { UserResult, Test } from '../../types';
 import { collection, query, where, onSnapshot, Timestamp, getDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { AuthContext } from '../../App';
-import { showMessage } from '../../utils/helpers';
+import { showMessage, formatTime } from '../../utils/helpers';
 import { CheckCircle, Trophy, Target, HelpCircle, Smile, Frown, SkipForward, Percent, ArrowRight, ArrowLeft, TrendingUp, Users, Clock, ChevronDown, BarChartHorizontal } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, Tooltip } from 'recharts';
+
+const CountUp: React.FC<{ end: number; decimals?: number; duration?: number, prefix?: string, suffix?: string }> = ({ end, decimals = 0, duration = 1, prefix = '', suffix = '' }) => {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        let startTime: number | null = null;
+        const animate = (timestamp: number) => {
+            if (!startTime) startTime = timestamp;
+            const progress = timestamp - startTime;
+            const percentage = Math.min(progress / (duration * 1000), 1);
+            
+            // Ease out function
+            const easedPercentage = 1 - Math.pow(1 - percentage, 3);
+
+            setCount(easedPercentage * end);
+
+            if (percentage < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                setCount(end); // Ensure it ends on the exact value
+            }
+        };
+        const frameId = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(frameId);
+    }, [end, duration]);
+    
+    return <>{prefix}{count.toFixed(decimals)}{suffix}</>;
+};
 
 interface ResultsScreenProps {
     result: UserResult;
@@ -24,10 +52,16 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ result, test, onViewSolut
     const [leaderboard, setLeaderboard] = useState<{ rank: number; name: string; score: number; isCurrentUser: boolean }[] | null>(null);
     const [userRank, setUserRank] = useState<number | null>(null);
     const [loadingComparison, setLoadingComparison] = useState(true);
+    const [isMounted, setIsMounted] = useState(false);
 
     const [currentResult, setCurrentResult] = useState<UserResult>(result);
     const [isAttemptsDropdownOpen, setIsAttemptsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+     useEffect(() => {
+        const timer = setTimeout(() => setIsMounted(true), 100); 
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -131,7 +165,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ result, test, onViewSolut
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 sm:p-6 lg:p-8">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 sm:p-6 lg:p-8 animate-fade-in">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-6 flex justify-between items-center">
                     <button onClick={onBackToTests} className="flex items-center justify-center gap-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all shadow-sm">
@@ -163,21 +197,32 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ result, test, onViewSolut
                     <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">Here's your detailed performance analysis.</p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 text-center">
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Your Score</p>
-                        <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 my-2">{`${currentResult.score.toFixed(2)} / ${currentResult.total}`}</p>
-                        <p className="text-2xl font-semibold text-gray-700 dark:text-gray-200">{currentResult.percentage.toFixed(2)}%</p>
+                        <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 my-2">
+                             <CountUp end={currentResult.score} decimals={2} /> / {currentResult.total}
+                        </p>
+                        <p className="text-2xl font-semibold text-gray-700 dark:text-gray-200">
+                             <CountUp end={currentResult.percentage} decimals={2} suffix="%" />
+                        </p>
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 text-center">
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Accuracy</p>
-                        <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 my-2">{accuracy.toFixed(2)}%</p>
+                        <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 my-2">
+                             <CountUp end={accuracy} decimals={2} suffix="%" />
+                        </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{currentResult.correctCount} correct out of {attemptedCount} attempted</p>
                     </div>
                      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 text-center">
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Your Rank</p>
-                        <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 my-2">{loadingComparison ? '...' : `#${comparisonData?.rank}`}</p>
+                        <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 my-2">{loadingComparison ? '...' : <CountUp end={comparisonData?.rank || 0} decimals={0} prefix="#" />}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">out of {loadingComparison ? '...' : comparisonData?.participants} participants</p>
+                    </div>
+                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 text-center">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Time Taken</p>
+                        <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 my-2">{formatTime(currentResult.timeTakenSeconds || 0)}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">out of {test.durationMinutes} minutes</p>
                     </div>
                 </div>
                 
@@ -212,7 +257,10 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ result, test, onViewSolut
                                             <span>{item.value.toFixed(2)}%</span>
                                         </div>
                                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                                            <div className={`${item.color} h-2.5 rounded-full`} style={{ width: `${item.value}%` }}></div>
+                                            <div 
+                                                className={`${item.color} h-2.5 rounded-full transition-all duration-1000 ease-out`} 
+                                                style={{ width: isMounted ? `${item.value}%` : '0%' }}>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

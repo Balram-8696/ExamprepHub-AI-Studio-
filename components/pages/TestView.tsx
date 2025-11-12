@@ -61,6 +61,9 @@ const TestView: React.FC<TestViewProps> = ({ test, action, resultData, onExitTes
 
         setIsSubmitting(true);
 
+        // Simulate a delay for a better user experience
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
         let correctCount = 0, incorrectCount = 0;
         test.questions.forEach((q, index) => {
             const userAnswer = userAnswers[index].answer;
@@ -198,10 +201,14 @@ const TestView: React.FC<TestViewProps> = ({ test, action, resultData, onExitTes
     return (
         <div className="w-full h-full relative">
              {isSubmitting && (
-                <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center z-50 rounded-xl">
-                    <Loader2 className="w-16 h-16 animate-spin text-indigo-600" />
-                    <p className="mt-4 text-lg font-semibold text-gray-700 dark:text-gray-200">Submitting your test...</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Please do not close this window.</p>
+                <div className="absolute inset-0 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center z-50 rounded-xl animate-fade-in">
+                    <svg className="w-24 h-24 text-indigo-500" viewBox="0 0 100 100" fill="currentColor">
+                        <rect className="bar1" x="10" y="90" width="20" height="10" rx="4" />
+                        <rect className="bar2" x="40" y="90" width="20" height="10" rx="4" />
+                        <rect className="bar3" x="70" y="90" width="20" height="10" rx="4" />
+                    </svg>
+                    <p className="mt-6 text-2xl font-bold text-gray-700 dark:text-gray-200">Analyzing your performance...</p>
+                    <p className="text-md text-gray-500 dark:text-gray-400 mt-2">Just a moment while we calculate your score.</p>
                 </div>
             )}
             {currentScreen === 'test' && (

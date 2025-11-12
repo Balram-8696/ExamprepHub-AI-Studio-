@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { collection, onSnapshot, query, orderBy, where, doc, getDoc, limit, Timestamp, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { Category, Test, UserResult, TestStateLocal, HomepageSettings, HomeComponent, BannerComponentConfig, FeaturedCategoryComponentConfig, LatestTestsComponentConfig, CategoriesGridComponentConfig, RichTextComponentConfig, RecentTestsComponentConfig, Announcement, AnnouncementsComponentConfig, TestimonialsComponentConfig, StatsCounterComponentConfig, FAQComponentConfig, CTAComponentConfig, FAQ, SyllabusComponentConfig, NotesComponentConfig, InformationComponentConfig, NewAdditionsComponentConfig, RecommendedTestsComponentConfig, CountdownTimerComponentConfig, VideoEmbedComponentConfig, LeaderboardComponentConfig, ImageGalleryComponentConfig, FeaturedTutorsComponentConfig, CurrentAffairsSection, CurrentAffairsGridComponentConfig, TestGridComponentConfig, StudyMaterial, LatestUpdatesComponentConfig, UpdateArticle } from '../../types';
+import { Category, Test, UserResult, TestStateLocal, HomepageSettings, HomeComponent, BannerComponentConfig, FeaturedCategoryComponentConfig, LatestTestsComponentConfig, CategoriesGridComponentConfig, RichTextComponentConfig, RecentTestsComponentConfig, Announcement, AnnouncementsComponentConfig, TestimonialsComponentConfig, StatsCounterComponentConfig, FAQComponentConfig, CTAComponentConfig, FAQ, SyllabusComponentConfig, NotesComponentConfig, InformationComponentConfig, NewAdditionsComponentConfig, RecommendedTestsComponentConfig, CountdownTimerComponentConfig, VideoEmbedComponentConfig, LeaderboardComponentConfig, ImageGalleryComponentConfig, FeaturedTutorsComponentConfig, CurrentAffairsSection, CurrentAffairsGridComponentConfig, TestGridComponentConfig, StudyMaterial, LatestUpdatesComponentConfig, UpdateArticle, ArticleBlock } from '../../types';
 import { AuthContext } from '../../App';
 import TestCard from '../home/TestCard';
 import DesktopSidebar from '../layout/DesktopSidebar';
@@ -94,7 +94,7 @@ const CountdownTimerComponent: React.FC<{ config: CountdownTimerComponentConfig 
 };
 
 const LatestUpdatesComponent: React.FC<{ config: LatestUpdatesComponentConfig; onNavigate: (path: string) => void }> = ({ config, onNavigate }) => {
-    const [articles, setArticles] = useState<UpdateArticle[]>([]);
+    const [articles, setArticles] = useState<(UpdateArticle & {content?: string})[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -103,7 +103,7 @@ const LatestUpdatesComponent: React.FC<{ config: LatestUpdatesComponentConfig; o
             where('status', '==', 'published')
         );
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const articlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UpdateArticle));
+            const articlesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as (UpdateArticle & {content?: string})));
             articlesData.sort((a, b) => (b.publishAt?.toDate().getTime() || 0) - (a.publishAt?.toDate().getTime() || 0));
             setArticles(articlesData.slice(0, config.limit || 3));
             setLoading(false);
@@ -114,9 +114,19 @@ const LatestUpdatesComponent: React.FC<{ config: LatestUpdatesComponentConfig; o
         return unsubscribe;
     }, [config.limit]);
     
-    const getSnippet = (content: string) => {
-        const text = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-        return text.length > 80 ? text.substring(0, 80) + '...' : text;
+    const getSnippet = (blocks: ArticleBlock[] | undefined, legacyContent: string | undefined) => {
+        let text = '';
+        if (blocks && blocks.length > 0) {
+             text = blocks
+                .filter(block => ['paragraph', 'h2', 'h3'].includes(block.type))
+                .map(block => (block as any).content)
+                .join(' ')
+                .replace(/<[^>]*>/g, ' ');
+        } else if (legacyContent) {
+            text = legacyContent.replace(/<[^>]*>/g, ' ');
+        }
+        const trimmed = text.replace(/\s+/g, ' ').trim();
+        return trimmed.length > 80 ? trimmed.substring(0, 80) + '...' : trimmed;
     };
 
     if (loading && articles.length === 0) {
@@ -151,7 +161,7 @@ const LatestUpdatesComponent: React.FC<{ config: LatestUpdatesComponentConfig; o
                         <div className="p-4">
                             <p className="text-xs text-gray-500 dark:text-gray-400">{formatRelativeTime(article.publishAt)}</p>
                             <h3 className="font-bold text-gray-800 dark:text-gray-100 mt-1 truncate">{article.title}</h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{getSnippet(article.content)}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 h-10">{getSnippet(article.blocks, article.content)}</p>
                         </div>
                     </button>
                 ))}
@@ -751,11 +761,11 @@ const HomePage: React.FC<HomePageProps> = ({
                             {topLevelCategories.map(cat => {
                                 const style = getCategoryStyle(cat.name);
                                 return (
-                                <button key={cat.id} onClick={() => onSelectCategory({ id: cat.id, name: cat.name })} className="block p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md border dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg transition-all text-center group">
-                                    <div className={`w-20 h-20 rounded-full mx-auto mb-3 border-4 border-white dark:border-gray-800 shadow-md transform group-hover:scale-110 transition-transform duration-300 flex items-center justify-center ${style.bg} ${style.text}`}>
+                                <button key={cat.id} onClick={() => onSelectCategory({ id: cat.id, name: cat.name })} className="flex flex-col items-center justify-center aspect-square p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md border dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg transition-all group">
+                                    <div className={`w-20 h-20 rounded-full mb-3 border-4 border-white dark:border-gray-800 shadow-md transform group-hover:scale-110 transition-transform duration-300 flex items-center justify-center ${style.bg} ${style.text}`}>
                                         <DynamicIcon name={cat.icon || cat.name} className="w-10 h-10" />
                                     </div>
-                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{cat.name}</p>
+                                    <p className="font-semibold text-sm text-center text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{cat.name}</p>
                                 </button>
                             )})}
                         </div>
@@ -773,11 +783,11 @@ const HomePage: React.FC<HomePageProps> = ({
                             {topLevelSections.map(sec => {
                                 const style = getCategoryStyle(sec.name);
                                 return (
-                                <button key={sec.id} onClick={() => onSelectCurrentAffairsSection({ id: sec.id, name: sec.name })} className="block p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md border dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg transition-all text-center group">
-                                    <div className={`w-20 h-20 rounded-full mx-auto mb-3 border-4 border-white dark:border-gray-800 shadow-md transform group-hover:scale-110 transition-transform duration-300 flex items-center justify-center ${style.bg} ${style.text}`}>
+                                <button key={sec.id} onClick={() => onSelectCurrentAffairsSection({ id: sec.id, name: sec.name })} className="flex flex-col items-center justify-center aspect-square p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md border dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg transition-all group">
+                                    <div className={`w-20 h-20 rounded-full mb-3 border-4 border-white dark:border-gray-800 shadow-md transform group-hover:scale-110 transition-transform duration-300 flex items-center justify-center ${style.bg} ${style.text}`}>
                                         <DynamicIcon name={sec.icon || sec.name} className="w-10 h-10" />
                                     </div>
-                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{sec.name}</p>
+                                    <p className="font-semibold text-sm text-center text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{sec.name}</p>
                                 </button>
                             )})}
                         </div>

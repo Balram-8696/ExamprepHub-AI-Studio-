@@ -115,7 +115,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onInitiateTestView }) => {
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const resultsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserResult));
                 
-                // FIX: Correctly typed the initial value for the `reduce` method's accumulator to prevent type inference issues.
                 const grouped = resultsData.reduce((acc, result) => {
                     const { testId, testTitle } = result;
                     if (!acc[testId]) {

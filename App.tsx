@@ -16,7 +16,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import ProfilePage from './components/pages/ProfilePage';
 import SettingsPage from './components/pages/SettingsPage';
 import Breadcrumbs from './components/layout/Breadcrumbs';
-import { Test, UserResult, Category, UserProfile, FooterLink, CurrentAffairsSection, Notification, UpdateArticle, CustomPage } from './types';
+import { Test, UserResult, Category, UserProfile, FooterLink, CurrentAffairsSection, Notification, UpdateArticle, CustomPage, ArticleBlock } from './types';
 import { showMessage } from './utils/helpers';
 import InstructionsPage from './components/pages/InstructionsPage';
 import NotificationDetailModal from './components/modals/NotificationDetailModal';
@@ -102,7 +102,7 @@ const App: React.FC = () => {
                     const data = userDoc.data();
                     const profile: UserProfile = {
                         uid: currentUser.uid,
-                        email: data.email,
+                        email: currentUser.email!,
                         role: isDefaultAdmin ? 'admin' : data.role,
                         createdAt: data.createdAt,
                         name: data.name || currentUser.displayName || currentUser.email!.split('@')[0],
@@ -163,7 +163,6 @@ const App: React.FC = () => {
             } else {
                  setFooterLinks([
                     { label: 'Home', path: 'home' },
-                    { label: 'My Results', path: 'history' },
                     { label: 'About Us', path: 'about' },
                     { label: 'Contact Us', path: 'contact' },
                     { label: 'Privacy Policy', path: 'privacy' },
@@ -327,9 +326,18 @@ const App: React.FC = () => {
     
     // SEO Effect
     useEffect(() => {
-        const createSnippet = (htmlContent: string, length = 155) => {
-            if (!htmlContent) return '';
-            const text = htmlContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        const createSnippet = (content: ArticleBlock[] | string | undefined, length = 155): string => {
+            if (!content) return '';
+            let text = '';
+            if (typeof content === 'string') { // Backward compatibility for old content format
+                text = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            } else if (Array.isArray(content)) { // New block-based format
+                text = content
+                    .filter(block => ['paragraph', 'h2', 'h3'].includes(block.type))
+                    .map(block => (block as any).content)
+                    .join(' ')
+                    .replace(/\s+/g, ' ').trim();
+            }
             return text.length > length ? text.substring(0, length) + '...' : text;
         };
 
@@ -364,9 +372,13 @@ const App: React.FC = () => {
                     const q = query(collection(db, 'updateArticles'), where("slug", "==", activeArticleSlug), limit(1));
                     const snapshot = await getDocs(q);
                     if (!snapshot.empty) {
-                        const article = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as UpdateArticle;
+                        const article = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as UpdateArticle & { content?: string };
                         title = `${article.metaTitle || article.title} | ExamPrep Hub`;
-                        description = article.metaDescription || createSnippet(article.content);
+                        description = article.metaDescription || createSnippet(article.blocks || article.content);
+                        
+                        const publishTs = article.publishAt || article.createdAt;
+                        const modifiedTs = article.updatedAt || article.publishAt || article.createdAt;
+
                         schema = {
                             '@context': 'https://schema.org',
                             '@type': 'Article',
@@ -389,8 +401,8 @@ const App: React.FC = () => {
                                     url: `${window.location.origin}/vite.svg`,
                                 },
                             },
-                            datePublished: article.publishAt.toDate().toISOString(),
-                            dateModified: article.updatedAt ? article.updatedAt.toDate().toISOString() : article.publishAt.toDate().toISOString(),
+                            datePublished: publishTs ? publishTs.toDate().toISOString() : new Date().toISOString(),
+                            dateModified: modifiedTs ? modifiedTs.toDate().toISOString() : new Date().toISOString(),
                         };
                     }
                 } catch (e) {
@@ -600,11 +612,7 @@ const App: React.FC = () => {
 
     const exitTestView = () => {
         setActiveTestData(null);
-        if (user) { // If user is logged in, show their results page after a test
-            setView('history');
-        } else { // Otherwise, go home
-            setView('home');
-        }
+        setView('home');
     };
     
     const handleSwitchToUserView = () => {
@@ -661,9 +669,9 @@ const App: React.FC = () => {
             case 'privacy':
                 return <PrivacyPolicyPage onNavigate={handleNavigation} onBack={handleBack} />;
             case 'profile':
-                 return <ProfilePage onNavigate={handleNavigation} onBack={handleBack} onInitiateTestView={handleInitiateTestView} />;
+                 return <ProfilePage />;
             case 'settings':
-                return <SettingsPage onBack={handleBack} />;
+                return <SettingsPage />;
             default:
                 return <HomePage 
                     onInitiateTestView={handleInitiateTestView} 
